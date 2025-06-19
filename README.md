@@ -174,6 +174,5 @@ Modular structure: easy to swap out LLMs or data sources.
 
 🧑‍💻 Author
 Puja Tripura
-AI Engineer Intern Candidate at PocketFund
 
 Passionate about automation, AI, and building intelligent assistants
