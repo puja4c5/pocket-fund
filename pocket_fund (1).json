@@ -1,0 +1,428 @@
+{
+  "name": "pocket fund",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "generate-factsheet",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        80
+      ],
+      "id": "69f976d8-cfd3-40fa-b96a-93d67d9d682c",
+      "webhookId": "6c1881b0-886b-4164-a528-776238a9d2cd"
+    },
+    {
+      "parameters": {
+        "sheetId": "1vZ3NjR-XUis6VTs2_uonmTHuQNafaxNuDulBJKJI5uk",
+        "range": "Sheet1!A:C",
+        "options": {
+          "valueRenderMode": "UNFORMATTED_VALUE"
+        }
+      },
+      "name": "Get Company From Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        80
+      ],
+      "id": "97987421-1b7d-4fc9-ab52-914d1c342073",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "0kauBtcF0kXFFaSk",
+          "name": "Google Sheets account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.CompanyName }}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "name": "Check If New Company",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        80
+      ],
+      "id": "e92078e9-65be-4eba-9f91-2176e6858c86"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://google.serper.dev/search",
+        "jsonParameters": true,
+        "options": {
+          "batchInterval": 1000,
+          "bodyContentType": "json",
+          "followRedirect": true
+        },
+        "bodyParametersJson": "=\n{\n  \"q\": \"={{ $('Webhook Trigger').item.json.query.CompanyName }}\"\n}\n\n\n\n\n\n\n",
+        "headerParametersJson": "{\"X-API-KEY\": \"9bda1e9f2dde6643ba7854bce23f4af36ae67bbd\"}"
+      },
+      "name": "Search Web1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        -120
+      ],
+      "id": "36632f66-9ef3-4592-893f-594c6ddc662b"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI assistant helping an analyst generate structured internal data about companies.\n\nYou will be provided:\n- The company name (from user input)\n- A snippet about that company (from search results)\n\nYour task is to generate a JSON object with the following fields:\n\n1. `companyName`: The company name exactly as received.\n2. `status`: Always return `\"active\"`.\n3. `internalNote`: Write a 1-line internal note summarizing the snippet in a professional tone. Avoid copying directly — rewrite insightfully.\n\n---\n\nReturn only this JSON object (no markdown, no extra text):\n\n```json\n{\n  \"companyName\": \"{{ $json['searchParameters']['q'] }}\",\n  \"status\": \"active\",\n  \"internalNote\": \"{{ $json.organic[0].snippet }}\"\n}\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        200,
+        -200
+      ],
+      "id": "1f676dd7-2f4f-48b6-b86d-229b946725d6",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-3.5-turbo-instruct",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "id": "adfda61b-6a6f-48f9-8d8d-c1ab8940c03a",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "EnyquetHpuuoT37S",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "text",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        660,
+        -120
+      ],
+      "id": "e9f5a743-b5d5-43e5-b55d-166baf378cf1",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1vZ3NjR-XUis6VTs2_uonmTHuQNafaxNuDulBJKJI5uk",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vZ3NjR-XUis6VTs2_uonmTHuQNafaxNuDulBJKJI5uk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1vZ3NjR-XUis6VTs2_uonmTHuQNafaxNuDulBJKJI5uk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "CompanyName": "={{ $('Webhook Trigger').item.json.query.CompanyName }}",
+            "Status        ": "=Active \n",
+            "InternalNotes": "={{ $('Search Web1').item.json.organic[0].snippet }}"
+          },
+          "matchingColumns": [
+            "CompanyName"
+          ],
+          "schema": [
+            {
+              "id": "CompanyName",
+              "displayName": "CompanyName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status        ",
+              "displayName": "Status        ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "InternalNotes",
+              "displayName": "InternalNotes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        880,
+        -120
+      ],
+      "id": "715a090e-e57c-445e-af3c-ecbdef6690c1",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "0kauBtcF0kXFFaSk",
+          "name": "Google Sheets account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# Overview  \nYou are an AI assistant helping an analyst generate structured internal data about companies.  \n\n## Context  \n- You will receive a company name and a web snippet about that company.  \n- If the company is not in the internal database (Google Sheet), you must analyze the snippet and create a professional summary.  \n- If the company is already in the database, retrieve its existing details instead.  \n- After processing, update the Google Sheet with the new or confirmed company info.  \n- Send an email with the final report to the email address found in the Google Sheet for that company.  \n\n## Instructions  \n1. Receive the company name and snippet from the upstream node.  \n2. If the company is not found in the internal database:\n   - Set `status` to `\"Researched\"`.\n   - Write a 1-line summary for `internalNote`, based on the snippet. Avoid copying the snippet directly.\n3. If the company is found:\n   - Use the existing `status` and `internalNote` from the sheet.\n4. Generate the final JSON object with:\n   - `companyName`: the received company name  \n   - `status`: either \"Researched\" or from the database  \n   - `internalNote`: rewritten summary or database note  \n5. Store the JSON in Google Sheets using the append/update node.  \n6. Look up the associated email address from the sheet.  \n7. Send the final structured report via the Gmail node to that email.\n\n## Tools  \n- Webhook trigger  \n- Google Sheets (read/write)  \n- LLM model (OpenRouter or Gemini)  \n- HTTP node (for web search)  \n- AI Agent with memory and tools  \n- Gmail (send email)  \n\n## Examples  \n- Input:  \n  ```json  \n  {  \n    \"CompanyName\": \"Anthropic\",  \n    \"Snippet\": \"Anthropic is a safety-focused AI company founded by former OpenAI researchers.\"  \n  }  \n  ```  \n- Output:  \n  ```json  \n  {  \n    \"companyName\": \"Anthropic\",  \n    \"status\": \"Researched\",  \n    \"internalNote\": \"Anthropic is an AI lab emphasizing safety, founded by ex-OpenAI team members.\"  \n  }  \n  ```  \n\n## SOP (Standard Operating Procedure)  \n1. Trigger workflow via Webhook with company name.  \n2. Read internal database (Google Sheet) to check for existing entry.  \n3. If not found:\n   - Run web search and generate summary via LLM.  \n   - Create and append new entry in Google Sheet.  \n4. If found:\n   - Retrieve data from Google Sheet.  \n5. Compose final JSON summary.  \n6. Extract email address from Google Sheet for that company.  \n7. Send formatted email using Gmail node.  {{ $json.CompanyName }}\n{{ $json['Status        '] }}\n{{ $json.InternalNotes }}\n\n## Final Notes  \n- Always return only the structured JSON result, no extra text or formatting.  \n- Ensure summaries are rewritten in a concise, professional tone.  \n- Handle cases where web search returns weak results by returning a fallback note: \"Minimal public information available.\"  \n---\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        440,
+        180
+      ],
+      "id": "ca2b5e6e-babe-49be-80b5-db36fca1fec9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "100"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        560,
+        400
+      ],
+      "id": "d19c35de-0bcf-4804-9a99-df0d749ca916",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        360,
+        400
+      ],
+      "id": "b0b1907a-25cb-49d5-a783-2c01bf3ab120",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "AP7GvDAAiYeSbOas",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ba439b85-e137-4392-ba2c-bf90ec2ffc62",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        180
+      ],
+      "id": "3ff62254-d137-4087-9f7c-22fe5f032099",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Company From Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Company From Sheet": {
+      "main": [
+        [
+          {
+            "node": "Check If New Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If New Company": {
+      "main": [
+        [
+          {
+            "node": "Search Web1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Web1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "546580a4-3d9e-4423-b88d-020269a23f61",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "90c91b5f750d98318aa8681541a0767eb4a35c7b464d0308fa13e445c1c9dd6a"
+  },
+  "id": "5cwfR93i9Yec6Ufe",
+  "tags": []
+}
