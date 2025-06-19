@@ -3,7 +3,7 @@ AI powered company fact sheet generator using n8n
 This repository contains an intelligent automation workflow built in n8n to streamline research, data enrichment, and reporting for companies. It simulates a real-world AI-powered research assistant that reads from a knowledge base (Google Sheets), performs conditional logic, conducts web research, generates insights using LLMs (like Gemini/OpenRouter).
 
 ✅ Built as part of the PocketFund AI Engineer Internship Assignment
-📹 Watch Loom Demo Video ← Insert your Loom link here
+📹 Watch Loom Demo Video 
 
 📌 Project Objective
 Design a complete, production-grade workflow that:
@@ -66,9 +66,7 @@ Webhook Input (GET)
 { "CompanyName": "Anthropic" }
 Google Sheet Before
 
-pgsql
-Copy
-Edit
+
 | CompanyName  | Status    | InternalNotes                   |
 |--------------|-----------|----------------------------------|
 | OpenAI       | Invested  | Led by Sam Altman, LLM leader   |
